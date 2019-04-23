@@ -13,12 +13,35 @@ typedef enum
    FAIL = -1
 } Status;
 
-struct Element
+class Element
 {
-  int isNum; //isNum = 1 is Number
-  std::string str;
-  int isComputed;
-  int value;
+  public:
+    int isNum; //isNum = 1 is Number
+    std::string str;
+    int isComputed;
+    double value;
+
+    Element(std::string token)
+    {
+       char *p;
+       double converted = std::strtod(token.c_str(), &p);
+       if(*p)
+       {
+          this->isComputed = 0;
+          this->value      = 0;
+          this->str = token;
+          this->isNum = 0;
+          std::cout<<"Is Alphabet: "<<this->str<<std::endl;
+       }
+       else
+       {
+          this->isComputed = 1;
+          this->value = std::stod(token);
+          this->str = "";
+          this->isNum = 1;
+          std::cout<<"Is Num: "<<this->value<<std::endl;
+       }
+    }
 };
 
 class Equation
@@ -28,8 +51,8 @@ class Equation
       int variables;
       int numbers;
       std::string *eqn_str;
-      std::string *lhs;
-      std::string *rhs;
+      std::vector<Element *> lhs;
+      std::vector<Element *> rhs;
       std::map< Element *, int> VarMap;
 
       Equation(std::string *str)
@@ -40,20 +63,45 @@ class Equation
          this->eqn_str = str;
       }
 
-      Status BreakEqn()
-      {
-         
-      } 
       Status ProcessEqn()
       {
          std::string token;
+         bool whichSide = 0; //lhs = 0, rhs = 1
          std::stringstream ss(*eqn_str);
          while( getline(ss, token, ' ') )
          {
-            std::cout<<token<<std::endl;
+//            std::cout<<token<<std::endl;
+
+            if ( token == "=")
+            {
+               whichSide = 1;
+               continue;
+            }
+            else
+            {
+               Element *element = new Element(token);
+               if( whichSide == 0 )
+               {
+                  this->lhs.push_back(element);
+               }
+               else
+               {
+                  this->rhs.push_back(element);
+               }
+            }
          }
          std::cout<<std::endl;
          return SUCCESS;
+      }
+
+      bool isSolved()
+      {
+          int res = 1;
+          for(auto itr = VarMap.begin(); itr != VarMap.end(); ++itr)
+          {
+             res &= itr->first->isComputed;
+          }
+          return res;
       }
 };
 
@@ -67,7 +115,7 @@ class Equations
       bool result = 1;
       for (int i = 0; i < Eqn.size(); ++i)
       {
-         result &= Eqn[i]->solved;
+         result &= Eqn[i]->isSolved();
       }
       return result;
    }
