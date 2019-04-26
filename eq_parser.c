@@ -10,7 +10,8 @@
 typedef enum
 {
    SUCCESS = 0,
-   FAIL = -1
+   FAIL = -1,
+   PENDING = -2;
 } Status;
 
 std::map<std::string, double> VarMap;
@@ -139,41 +140,38 @@ class Equation
          if ( (lhs.size() == 1) &&
               (rhs.size() >= 1)  )
          {
-             if (lhs[0]->isNum == 0)
-             {
-                status = compute(rhs, result);
-                if (status == SUCCESS)
-                {
-                   VarMap[lhs[0]->VarName] = result;
-                   lhs[0]->isComputed = 1;
-                   this->solved = 1;
-                   VarPending[lhs[0]->VarName] = false;
-                } 
-             }
-           else
-           {
-               
-           }
+            status = compute(rhs, result);
+            if (status == SUCCESS)
+            {
+               VarMap[lhs[0]->VarName] = result;
+               lhs[0]->isComputed = 1;
+               this->solved = 1;
+               VarPending[lhs[0]->VarName] = false;
+            }
          }
          else if ( (lhs.size() >= 1) && 
                     rhs.size() == 1)
          {
-             status = compute(lhs, result);
-             if (status == SUCCESS)
-             {
-                 VarMap[rhs[0]->VarName] = result;
-                 rhs[0]->isComputed = 1;
-                 this->solved = 1;
-                 VarPending[rhs[0]->VarName] = false;
-                 
-             }
-
+            status = compute(lhs, result);
+            if (status == SUCCESS)
+            {
+               VarMap[rhs[0]->VarName] = result;
+               rhs[0]->isComputed = 1;
+               this->solved = 1;
+               VarPending[rhs[0]->VarName] = false;
+            
+            }
          }
          else if ( (lhs.size() > 1) &&
                     (rhs.size() > 1 ))
          {
              std::cout<<"Incapable of solving equations with mix of Variable";
              std::cout<<" and Numbers on One Side"<<std::endl;
+             //To be worked on
+         }
+         else
+         {
+             std::cout<<"Wrong Format"<<std::endl;
          }
      }
             
