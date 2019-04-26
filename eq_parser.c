@@ -14,6 +14,7 @@ typedef enum
 } Status;
 
 std::map<std::string, double> VarMap;
+std::map<std::string, bool> VarPending; //1 = done/can be computed; 0: cannot
 
 class Element
 {
@@ -34,6 +35,7 @@ class Element
           this->VarName = token;
           this->isNum = 0;
           std::cout<<"Is Alphabet: "<<this->str<<std::endl;
+          VarPending[token] = true;
        }
        else
        {
@@ -65,8 +67,8 @@ class Equation
       std::string *eqn_str;
       std::vector<Element *> lhs;
       std::vector<Element *> rhs;
-      std::map<Element *, double> *varMap;
-      Equation(std::string *str, std::map<Element *, value> *varMap)
+
+      Equation(std::string *str)
       {
          this->solved    = 0;
          this->variables = 0;
@@ -130,27 +132,49 @@ class Equation
           return res;
       }
 
-     bool SolveEqn()
+     Status SolveEqn()
      {
-         if (lhs.size() == 1 && rhs.size() >= 1)
+         int result;
+         int status = FAIL;
+         if ( (lhs.size() == 1) &&
+              (rhs.size() >= 1)  )
          {
-             int result;
-             int status = compute(rhs, result);
+             if (lhs[0]->isNum == 0)
+             {
+                status = compute(rhs, result);
+                if (status == SUCCESS)
+                {
+                   VarMap[lhs[0]->VarName] = result;
+                   lhs[0]->isComputed = 1;
+                   this->solved = 1;
+                   VarPending[lhs[0]->VarName] = false;
+                } 
+             }
+           else
+           {
+               
+           }
+         }
+         else if ( (lhs.size() >= 1) && 
+                    rhs.size() == 1)
+         {
+             status = compute(lhs, result);
              if (status == SUCCESS)
              {
-                 VarMap[lhs[0]->VarName] = result;
-                 lhs[0]->isComputed = 1;
+                 VarMap[rhs[0]->VarName] = result;
+                 rhs[0]->isComputed = 1;
+                 this->solved = 1;
+                 VarPending[rhs[0]->VarName] = false;
                  
              }
-             else
-         }
-         else if ( (lhs.size() == 1) && 
-                    rhs.size() > 1)
-         {
 
          }
          else if ( (lhs.size() > 1) &&
-                    (rhs.size()  ))
+                    (rhs.size() > 1 ))
+         {
+             std::cout<<"Incapable of solving equations with mix of Variable";
+             std::cout<<" and Numbers on One Side"<<std::endl;
+         }
      }
             
 };
@@ -159,7 +183,7 @@ class Equations
 {
   public:
    std::vector<Equation *> Eqn;
-   std::map<Equation *, bool> pending; //1 = done/can be computed; 0: cannot
+   std::map<Equation *, bool>EqPending;
 
    bool isComputeComplt()
    {
