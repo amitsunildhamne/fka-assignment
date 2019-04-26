@@ -11,8 +11,14 @@ typedef enum
 {
    SUCCESS = 0,
    FAIL = -1,
-   PENDING = -2;
+   PENDING = -2
 } Status;
+
+typedef enum
+{
+    LHS = 0,
+    RHS = 1
+} Side;
 
 std::map<std::string, double> VarMap;
 std::map<std::string, bool> VarPending; //1 = done/can be computed; 0: cannot
@@ -35,7 +41,7 @@ class Element
           this->value      = 0;
           this->VarName = token;
           this->isNum = 0;
-          std::cout<<"Is Alphabet: "<<this->str<<std::endl;
+          std::cout<<"Is Alphabet: "<<this->VarName<<std::endl;
           VarPending[token] = true;
        }
        else
@@ -54,7 +60,8 @@ class Element
        this->value      = value;
        this->VarName = token;
        this->isNum = 0;
-       std::cout<<"Is Alphabet: "<<this->str<<std::endl;
+       std::cout<<"Is Alphabet: "<<this->VarName;
+       std::cout<<" With Value: "<<this->value<<std::endl;
     }
 
 };
@@ -75,13 +82,12 @@ class Equation
          this->variables = 0;
          this->numbers   = 0;
          this->eqn_str = str;
-         this->varMap = varMap;
       }
 
       Status ProcessEqn()
       {
          std::string token;
-         bool whichSide = 0; //lhs = 0, rhs = 1
+         Side whichSide = LHS;
          std::stringstream ss(*eqn_str);
          while( getline(ss, token, ' ') )
          {
@@ -89,21 +95,22 @@ class Equation
 
             if ( token == "=")
             {
-               whichSide = 1;
+               whichSide = RHS;
                continue;
             }
             else
             {
+               Element *element;
                if ( VarMap.find(token) == VarMap.end() )
                {
-                   Element *element = new Element(token);
+                   element = new Element(token);
                }
                else
                {
-                    Element *element = new Element(token, VarMap[token]);
+                   element = new Element(token, VarMap[token]);
                }
 
-               if( whichSide == 0 )
+               if( whichSide == LHS )
                {
                   this->lhs.push_back(element);
 
@@ -121,26 +128,31 @@ class Equation
       bool isSolved()
       {
           int res = 1;
-          for(auto itr = this->lhs.begin(); itr != this->lhs.end(); ++itr)
+          for(int itr = 0; itr > this->lhs.size(); ++itr)
           {
-             res &= itr->first->isComputed;
+             res &= this->lhs[itr]->isComputed;
           }
-          for(auto itr = this->rhs.begin(); itr != this->rhs.end(); ++itr)
+          for(int itr = 0; itr > this->rhs.size(); ++itr)
           {
-              res &= itr->first->isComputed;
+              res &= this->rhs[itr]->isComputed;
           }
           this->solved = res;
           return res;
       }
 
+     Status compute(Side side, double &result)
+     {
+        result = 0.00;
+        return SUCCESS;
+     }
      Status SolveEqn()
      {
-         int result;
-         int status = FAIL;
+         double result;
+         Status status = FAIL;
          if ( (lhs.size() == 1) &&
               (rhs.size() >= 1)  )
          {
-            status = compute(rhs, result);
+            status = compute(RHS, result);
             if (status == SUCCESS)
             {
                VarMap[lhs[0]->VarName] = result;
@@ -152,7 +164,7 @@ class Equation
          else if ( (lhs.size() >= 1) && 
                     rhs.size() == 1)
          {
-            status = compute(lhs, result);
+            status = compute(LHS, result);
             if (status == SUCCESS)
             {
                VarMap[rhs[0]->VarName] = result;
@@ -173,6 +185,7 @@ class Equation
          {
              std::cout<<"Wrong Format"<<std::endl;
          }
+         return status;
      }
             
 };
@@ -208,7 +221,7 @@ class Equations
       while (std::getline(eqFile, line, '\n'))
       {
          std::istringstream iss(line);
-         Equation *equation = new Equation(&line, &varMap);
+         Equation *equation = new Equation(&line);
          Eqn.push_back(equation);
          equation->ProcessEqn();
          //std::cout<<line<<std::endl;
