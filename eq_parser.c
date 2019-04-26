@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-
+#include <algorithm>
 typedef enum
 {
    SUCCESS = 0,
@@ -143,6 +143,7 @@ class Equation
      Status compute(Side side, double &result)
      {
         result = 0.00;
+        std::cout<<"Computed"<<std::endl;
         return SUCCESS;
      }
      Status SolveEqn()
@@ -194,7 +195,7 @@ class Equations
 {
   public:
    std::vector<Equation *> Eqn;
-   std::map<Equation *, bool>EqPending;
+   std::vector<Equation *>EqPending;
 
    bool isComputeComplt()
    {
@@ -223,12 +224,57 @@ class Equations
          std::istringstream iss(line);
          Equation *equation = new Equation(&line);
          Eqn.push_back(equation);
+         EqPending.push_back(equation);
          equation->ProcessEqn();
          //std::cout<<line<<std::endl;
       }
       
       eqFile.close();
       return SUCCESS;
+   }
+
+   Status SolveEquations()
+   {
+       Status ret_val = SUCCESS;
+       int i = 0;
+       while(true) //Keeps looping until all equations have been solved
+       {           //Loop breaks if Equations are unsolveable
+           int prev_size = this->EqPending.size();
+           Status status = this->EqPending[i]->SolveEqn();
+           if (status = SUCCESS)
+           {
+               Equation *store_prev_element = NULL;
+               if (i > 0)
+               {
+                  store_prev_element = this->EqPending[i-1]; // We store previous element to find 
+                                                             //our position after deleting the current element
+               }
+               this->EqPending.erase( std::remove(this->EqPending.begin(),
+                                                  this->EqPending.end(), this->Eqn[i]),
+                                      this->EqPending.end() );
+               if (i > 0)
+               {
+                  auto itr = std::find(this->EqPending.begin(), this->EqPending.end(), store_prev_element);
+                  i = std::distance(this->EqPending.begin(), itr);
+               }
+               std::cout<<"EqPending Size: "<<this->EqPending.size()<<std::endl;
+           }
+           else if (status == FAIL)
+           {
+              ret_val = FAIL;
+              break;
+           }
+
+           if(prev_size == this->EqPending.size() || this->EqPending.size() == 0)
+           {
+               if (this->EqPending.size() > 0)
+               {
+                   ret_val = FAIL;
+               }
+               break;
+           }
+       }
+       return ret_val;
    }
 
    ~Equations()
@@ -247,6 +293,7 @@ int main()
   std::string fileName = "math1.txt";
   Equations *eqns = new Equations();
   status = eqns->ProcessFile(fileName);
+  std::cout<<"Status Solve Equations: "<<eqns->SolveEquations()<<std::endl;
   std::cout<<status<<std::endl;
   return 0;
 }
