@@ -13,11 +13,13 @@ typedef enum
    FAIL = -1
 } Status;
 
+std::map<std::string, double> VarMap;
+
 class Element
 {
   public:
     int isNum; //isNum = 1 is Number
-    std::string str;
+    std::string VarName;
     int isComputed;
     double value;
 
@@ -29,7 +31,7 @@ class Element
        {
           this->isComputed = 0;
           this->value      = 0;
-          this->str = token;
+          this->VarName = token;
           this->isNum = 0;
           std::cout<<"Is Alphabet: "<<this->str<<std::endl;
        }
@@ -37,11 +39,21 @@ class Element
        {
           this->isComputed = 1;
           this->value = std::stod(token);
-          this->str = "";
+          this->VarName = "";
           this->isNum = 1;
           std::cout<<"Is Num: "<<this->value<<std::endl;
        }
     }
+
+     Element(std::string token, double value)
+    {
+       this->isComputed = 1;
+       this->value      = value;
+       this->VarName = token;
+       this->isNum = 0;
+       std::cout<<"Is Alphabet: "<<this->str<<std::endl;
+    }
+
 };
 
 class Equation
@@ -53,14 +65,14 @@ class Equation
       std::string *eqn_str;
       std::vector<Element *> lhs;
       std::vector<Element *> rhs;
-      std::map< Element *, int> VarMap;
-
-      Equation(std::string *str)
+      std::map<Element *, double> *varMap;
+      Equation(std::string *str, std::map<Element *, value> *varMap)
       {
          this->solved    = 0;
          this->variables = 0;
          this->numbers   = 0;
          this->eqn_str = str;
+         this->varMap = varMap;
       }
 
       Status ProcessEqn()
@@ -79,10 +91,19 @@ class Equation
             }
             else
             {
-               Element *element = new Element(token);
+               if ( VarMap.find(token) == VarMap.end() )
+               {
+                   Element *element = new Element(token);
+               }
+               else
+               {
+                    Element *element = new Element(token, VarMap[token]);
+               }
+
                if( whichSide == 0 )
                {
                   this->lhs.push_back(element);
+
                }
                else
                {
@@ -97,18 +118,48 @@ class Equation
       bool isSolved()
       {
           int res = 1;
-          for(auto itr = VarMap.begin(); itr != VarMap.end(); ++itr)
+          for(auto itr = this->lhs.begin(); itr != this->lhs.end(); ++itr)
           {
              res &= itr->first->isComputed;
           }
+          for(auto itr = this->rhs.begin(); itr != this->rhs.end(); ++itr)
+          {
+              res &= itr->first->isComputed;
+          }
+          this->solved = res;
           return res;
       }
+
+     bool SolveEqn()
+     {
+         if (lhs.size() == 1 && rhs.size() >= 1)
+         {
+             int result;
+             int status = compute(rhs, result);
+             if (status == SUCCESS)
+             {
+                 VarMap[lhs[0]->VarName] = result;
+                 lhs[0]->isComputed = 1;
+                 
+             }
+             else
+         }
+         else if ( (lhs.size() == 1) && 
+                    rhs.size() > 1)
+         {
+
+         }
+         else if ( (lhs.size() > 1) &&
+                    (rhs.size()  ))
+     }
+            
 };
 
 class Equations
 {
   public:
    std::vector<Equation *> Eqn;
+   std::map<Equation *, bool> pending; //1 = done/can be computed; 0: cannot
 
    bool isComputeComplt()
    {
@@ -135,7 +186,7 @@ class Equations
       while (std::getline(eqFile, line, '\n'))
       {
          std::istringstream iss(line);
-         Equation *equation = new Equation(&line);
+         Equation *equation = new Equation(&line, &varMap);
          Eqn.push_back(equation);
          equation->ProcessEqn();
          //std::cout<<line<<std::endl;
